@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# Full dataset (200 MB, over GitHub's limit). The app only needs the test split.
+data/organamnist_64.npz
+
+# Local runtime state
+artifacts/leaderboard.json
+artifacts.zip
+
+# Private notes and tooling
+VIVA_NOTES.md
+.claude/
+.DS_Store
