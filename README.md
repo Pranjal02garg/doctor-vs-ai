@@ -37,8 +37,6 @@ You and the model look at the same scan, both make a call, and the scoreboard sh
 | **Upload & Predict**<br>Upload any image and get a prediction, the top-5 probabilities and a Grad-CAM overlay. Colour photos and low-confidence inputs get a warning. Below 40% confidence, the model says it doesn't know. | ![Upload](docs/screenshots/upload.png) |
 | **AI Report Card**<br>Test accuracy, macro F1, training curves, confusion matrix and per-organ precision, recall and F1. | ![Report](docs/screenshots/report.png) |
 
-A fifth page, **How it was built**, covers the dataset, model and training setup.
-
 ---
 
 ## Results
@@ -186,7 +184,7 @@ python train.py --no-aug         # without augmentation
 
 ```
 .
-├── app.py                                 Streamlit app (5 pages)
+├── app.py                                 Streamlit app (4 pages)
 ├── common.py                              Class names, model definition, data loading
 ├── train.py                               Command-line training + evaluation + AMP benchmark
 ├── OrganAMNIST_ResNet18_Training.ipynb    Full step-by-step training notebook (Colab)

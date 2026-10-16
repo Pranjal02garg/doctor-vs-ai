@@ -330,13 +330,10 @@ def page_upload():
 def page_report():
     st.title("AI Report Card")
     m, hist = get_metrics()
-    c = st.columns(4)
+    c = st.columns(3)
     c[0].metric("Test accuracy", f"{m['test_acc']:.1%}")
     c[1].metric("Macro F1", f"{m['macro_f1']:.3f}")
     c[2].metric("Test images", f"{sum(v['support'] for v in m['per_class'].values()):,}")
-    b = m["amp_benchmark_ms_per_step"]
-    c[3].metric("Mixed-precision speed-up", f"{b['fp32'] / b['amp']:.2f}×",
-                help=f"FP32 {b['fp32']} ms/step vs AMP {b['amp']} ms/step")
 
     h = pd.DataFrame(hist).set_index("epoch")
     l, r = st.columns(2)
@@ -371,68 +368,6 @@ def page_report():
                      use_container_width=True)
 
 
-# ---------- page: how it works ----------
-def page_how():
-    m, _ = get_metrics()
-    cfg = m["config"]
-    n_params = sum(p.numel() for p in get_model().parameters())
-    hardware = "NVIDIA T4 GPU (Google Colab)" if cfg["device"] == "cuda" else cfg["device"]
-    b = m["amp_benchmark_ms_per_step"]
-
-    st.title("How it was built")
-
-    st.subheader("Data")
-    st.write("We used OrganAMNIST, one of the datasets in MedMNIST v2 (Yang et al., 2023). The images are axial "
-             "slices from abdominal CT scans in the LiTS dataset, each cropped around one of 11 organs. We chose "
-             "the 64×64 version because it trains quickly on Colab and still keeps enough detail. We kept the "
-             "official split: 34,561 images for training, 6,491 for validation and 17,778 for testing.")
-
-    st.subheader("Model")
-    st.write("We used ResNet18 (He et al., 2016) with ImageNet-pretrained weights and fine-tuned the whole network "
-             "on the CT images. We also tried training from scratch, but in the same number of epochs it did "
-             "noticeably worse.")
-    st.write("ResNet18 is designed for 224×224 images and shrinks the input quickly in its first layers. With 64×64 "
-             "input, only a 2×2 feature map would be left at the end. So we changed the stride of the first "
-             "convolution from 2 to 1 and removed the max-pooling layer. The last layer was replaced with a "
-             "512 → 11 fully connected layer, one output per organ.")
-
-    st.subheader("Training")
-    st.write("Each grayscale image was copied to 3 channels and normalised with the ImageNet mean and standard "
-             "deviation. During training we applied small random rotations, zooms and shifts. We did not use "
-             "horizontal flips, because a flip would turn a left kidney into a right kidney.")
-    st.write(f"We trained with mixed precision (FP16). On the same GPU, one training step took {b['amp']} ms, "
-             f"compared with {b['fp32']} ms in normal FP32. Accuracy stayed the same.")
-
-    rows = [
-        ("Architecture", "ResNet18 (18-layer residual CNN, He et al. 2016)"),
-        ("Initial weights", "ImageNet-1k pretrained (transfer learning)"),
-        ("Changes for 64×64 input", "First conv stride 2 → 1, max-pool removed"),
-        ("Output layer", "Fully-connected, 512 → 11 organ classes"),
-        ("Parameters", f"{n_params / 1e6:.2f} M"),
-        ("Dataset", "OrganAMNIST (MedMNIST v2), 64×64 abdominal CT"),
-        ("Training images", "34,561 (validation 6,491, test 17,778)"),
-        ("Epochs / batch size / learning rate", f"{cfg['epochs']} / {cfg['bs']} / {cfg['lr']}"),
-        ("Optimiser / schedule", "AdamW (weight decay 1e-4) / One-Cycle"),
-        ("Loss", "Cross-entropy with label smoothing 0.1"),
-        ("Precision / hardware", f"Mixed FP16 (AMP) / {hardware}"),
-    ]
-    st.table(pd.DataFrame(rows, columns=["Setting", "Value"]).set_index("Setting"))
-
-    st.subheader("Result")
-    st.write(f"The final model gets {m['test_acc']:.1%} accuracy on the test set. For comparison, the MedMNIST v2 "
-             "paper reports 93.5% for ResNet-18 at 28px and 95.1% at 224px on OrganAMNIST. The most common "
-             "mistake is confusing the left kidney with the spleen. Both organs sit on the same side of the "
-             "body at a similar height, so this is understandable.")
-
-    st.subheader("References")
-    st.markdown("""
-1. J. Yang et al., MedMNIST v2: A large-scale lightweight benchmark for 2D and 3D biomedical image classification, *Scientific Data*, 2023.
-2. K. He et al., Deep Residual Learning for Image Recognition, CVPR 2016.
-3. R. R. Selvaraju et al., Grad-CAM: Visual Explanations from Deep Networks, ICCV 2017.
-4. P. Micikevicius et al., Mixed Precision Training, ICLR 2018.
-""")
-
-
 missing = [p for p in (ART / "model.pt", ART / "metrics.json", ART / "history.json") if not p.exists()]
 if missing:
     st.title("Doctor vs AI")
@@ -450,6 +385,5 @@ pages = [
     st.Page(page_vision, title="Where is the AI looking?"),
     st.Page(page_upload, title="Upload & Predict"),
     st.Page(page_report, title="AI Report Card"),
-    st.Page(page_how, title="How it was built"),
 ]
 st.navigation(pages).run()
